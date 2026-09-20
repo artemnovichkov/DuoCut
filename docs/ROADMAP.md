@@ -110,8 +110,8 @@
 - [x] Иконка, AccentColor, звук/гаптика, анимации переходов, пустые состояния.
 - [x] Скриншоты/гифки: `.github/images/` (`-folded`, `-book` суффиксы для состояний сгиба).
 - [x] `README.md` в стиле DuoBird: что это, требования, геймплей, какие API использованы, «Good to Know» про division region и её активность только при частичном сгибе.
-- [ ] `gh repo create artemnovichkov/DuoCut --public`, пуш.
-- [ ] В `DuoByExamples/README.md` → «See Also» добавить строку про DuoCut.
+- [x] `gh repo create artemnovichkov/DuoCut --public`, пуш.
+- [x] В `DuoByExamples/README.md` → «See Also» добавить строку про DuoCut.
 - Готово, когда: репо публичный, README с картинками, ссылка из каталога есть.
 
 ---
