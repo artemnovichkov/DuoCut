@@ -12,7 +12,7 @@ struct Pack: Identifiable, Equatable {
 }
 
 enum Levels {
-    static let packs: [Pack] = [basics]
+    static let packs: [Pack] = [basics, fruit, constellations, mosaic]
 
     /// Straight shapes first, then the ones where the eye starts to lie.
     static let basics = Pack(
@@ -91,4 +91,227 @@ enum Levels {
             )
         ]
     )
+
+    /// Round, lumpy shapes where the eye is a bad judge of area.
+    static let fruit = Pack(
+        id: "fruit",
+        title: "Fruit",
+        subtitle: "Curves lie",
+        levels: [
+            Level(
+                id: "fruit-plum",
+                title: "Plum",
+                goal: .equalHalves,
+                shapes: [.regular(sides: 24, radius: 0.85)],
+                startOffset: CGVector(dx: 60, dy: -10)
+            ),
+            Level(
+                id: "fruit-pear",
+                title: "Pear",
+                goal: .equalHalves,
+                shapes: [pear],
+                startRotation: 0.6,
+                startOffset: CGVector(dx: -40, dy: 20)
+            ),
+            Level(
+                id: "fruit-banana",
+                title: "Banana",
+                goal: .equalHalves,
+                shapes: [crescent],
+                startRotation: -0.5,
+                startOffset: CGVector(dx: 30, dy: 0)
+            ),
+            Level(
+                id: "fruit-slice",
+                title: "Melon Slice",
+                goal: .ratio(0.25),
+                shapes: [.regular(sides: 20, radius: 0.9)],
+                startOffset: CGVector(dx: -60, dy: 10)
+            ),
+            Level(
+                id: "fruit-bunch",
+                title: "Bunch",
+                goal: .equalHalves,
+                shapes: [
+                    .regular(sides: 14, radius: 0.42, center: CGPoint(x: -0.45, y: -0.3)),
+                    .regular(sides: 14, radius: 0.5, center: CGPoint(x: 0.42, y: -0.1)),
+                    .regular(sides: 14, radius: 0.38, center: CGPoint(x: -0.1, y: 0.55))
+                ],
+                startRotation: 0.3
+            ),
+            Level(
+                id: "fruit-core",
+                title: "Core",
+                goal: .ratio(1.0 / 3),
+                shapes: [apple],
+                startRotation: 0.25,
+                startOffset: CGVector(dx: 40, dy: -20)
+            )
+        ],
+        starsToUnlock: 8
+    )
+
+    /// Levels where the tokens, not the area, decide the cut.
+    static let constellations = Pack(
+        id: "constellations",
+        title: "Constellations",
+        subtitle: "Count, don't measure",
+        levels: [
+            Level(
+                id: "stars-four",
+                title: "Four",
+                goal: .tokensPerSide(2),
+                shapes: [.regular(sides: 20, radius: 0.9)],
+                tokens: [
+                    Token(position: CGPoint(x: -0.45, y: -0.4), color: .star),
+                    Token(position: CGPoint(x: -0.4, y: 0.45), color: .star),
+                    Token(position: CGPoint(x: 0.42, y: -0.35), color: .star),
+                    Token(position: CGPoint(x: 0.5, y: 0.3), color: .star)
+                ],
+                startRotation: 0.4
+            ),
+            Level(
+                id: "stars-six",
+                title: "Six",
+                goal: .tokensPerSide(3),
+                shapes: [.rectangle(CGRect(x: -1, y: -0.6, width: 2, height: 1.2))],
+                tokens: [
+                    Token(position: CGPoint(x: -0.7, y: -0.3), color: .star),
+                    Token(position: CGPoint(x: -0.65, y: 0.3), color: .star),
+                    Token(position: CGPoint(x: -0.2, y: 0), color: .star),
+                    Token(position: CGPoint(x: 0.25, y: -0.3), color: .star),
+                    Token(position: CGPoint(x: 0.6, y: 0.25), color: .star),
+                    Token(position: CGPoint(x: 0.8, y: -0.1), color: .star)
+                ],
+                startRotation: -0.3,
+                startOffset: CGVector(dx: 30, dy: 0)
+            ),
+            Level(
+                id: "stars-sort",
+                title: "Sorting",
+                goal: .separateColors,
+                shapes: [.regular(sides: 6, radius: 0.95)],
+                tokens: [
+                    Token(position: CGPoint(x: -0.5, y: -0.25), color: .red),
+                    Token(position: CGPoint(x: -0.45, y: 0.3), color: .red),
+                    Token(position: CGPoint(x: 0.45, y: -0.3), color: .blue),
+                    Token(position: CGPoint(x: 0.5, y: 0.25), color: .blue)
+                ],
+                startRotation: 0.9
+            ),
+            Level(
+                id: "stars-interleaved",
+                title: "Woven",
+                goal: .separateColors,
+                shapes: [.rectangle(CGRect(x: -1, y: -0.55, width: 2, height: 1.1))],
+                tokens: [
+                    Token(position: CGPoint(x: -0.75, y: -0.3), color: .red),
+                    Token(position: CGPoint(x: -0.25, y: 0.3), color: .red),
+                    Token(position: CGPoint(x: -0.55, y: 0.05), color: .red),
+                    Token(position: CGPoint(x: 0.2, y: -0.35), color: .blue),
+                    Token(position: CGPoint(x: 0.7, y: 0.25), color: .blue),
+                    Token(position: CGPoint(x: 0.45, y: -0.05), color: .blue)
+                ],
+                startRotation: 1.2,
+                startOffset: CGVector(dx: -30, dy: 20)
+            ),
+            Level(
+                id: "stars-horseshoe",
+                title: "Horseshoe Stars",
+                goal: .tokensPerSide(2),
+                shapes: [Polygon([
+                    CGPoint(x: -0.9, y: -0.9), CGPoint(x: 0.9, y: -0.9), CGPoint(x: 0.9, y: -0.45),
+                    CGPoint(x: -0.35, y: -0.45), CGPoint(x: -0.35, y: 0.45), CGPoint(x: 0.9, y: 0.45),
+                    CGPoint(x: 0.9, y: 0.9), CGPoint(x: -0.9, y: 0.9)
+                ])],
+                tokens: [
+                    Token(position: CGPoint(x: -0.6, y: -0.7), color: .star),
+                    Token(position: CGPoint(x: 0.4, y: -0.7), color: .star),
+                    Token(position: CGPoint(x: -0.6, y: 0.7), color: .star),
+                    Token(position: CGPoint(x: 0.4, y: 0.7), color: .star)
+                ],
+                startRotation: -0.2
+            )
+        ],
+        starsToUnlock: 22
+    )
+
+    /// More than one cut, and a target that isn't half.
+    static let mosaic = Pack(
+        id: "mosaic",
+        title: "Mosaic",
+        subtitle: "Two cuts, three pieces",
+        levels: [
+            Level(
+                id: "mosaic-thirds",
+                title: "Thirds",
+                goal: .ratio(1.0 / 3),
+                cuts: 2,
+                shapes: [.rectangle(CGRect(x: -1, y: -0.5, width: 2, height: 1))],
+                startOffset: CGVector(dx: 40, dy: 0)
+            ),
+            Level(
+                id: "mosaic-quarters",
+                title: "Quarters",
+                goal: .equalHalves,
+                cuts: 2,
+                shapes: [.regular(sides: 4, radius: 1)],
+                startRotation: 0.5
+            ),
+            Level(
+                id: "mosaic-fifth",
+                title: "A Fifth",
+                goal: .ratio(0.2),
+                cuts: 2,
+                shapes: [.regular(sides: 16, radius: 0.9)],
+                startOffset: CGVector(dx: -50, dy: 20)
+            ),
+            Level(
+                id: "mosaic-ell",
+                title: "Split Elbow",
+                goal: .equalHalves,
+                cuts: 2,
+                shapes: [Polygon([
+                    CGPoint(x: -0.9, y: -0.9), CGPoint(x: 0.3, y: -0.9), CGPoint(x: 0.3, y: -0.2),
+                    CGPoint(x: 0.9, y: -0.2), CGPoint(x: 0.9, y: 0.9), CGPoint(x: -0.9, y: 0.9)
+                ])],
+                startRotation: 0.8
+            ),
+            Level(
+                id: "mosaic-star",
+                title: "Broken Star",
+                goal: .ratio(0.25),
+                cuts: 3,
+                shapes: [.star(points: 6, outerRadius: 1, innerRadius: 0.45)],
+                startRotation: 0.2
+            )
+        ],
+        starsToUnlock: 37
+    )
+
+    // MARK: - Hand-drawn shapes
+
+    private static let pear = Polygon((0..<26).map { index in
+        let angle = Double(index) / 26 * 2 * .pi
+        // A circle that swells at the bottom and pinches at the top.
+        let radius = 0.55 + 0.32 * sin(angle + .pi / 2) * sin(angle + .pi / 2)
+        return CGPoint(x: cos(angle) * radius, y: sin(angle) * radius * 1.25)
+    })
+
+    private static let crescent = Polygon(
+        (0...16).map { index -> CGPoint in
+            let angle = .pi * 0.15 + Double(index) / 16 * .pi * 1.2
+            return CGPoint(x: cos(angle), y: sin(angle))
+        } + (0...16).reversed().map { index -> CGPoint in
+            let angle = .pi * 0.15 + Double(index) / 16 * .pi * 1.2
+            return CGPoint(x: cos(angle) * 0.62, y: sin(angle) * 0.62 - 0.18)
+        }
+    )
+
+    private static let apple = Polygon((0..<28).map { index in
+        let angle = Double(index) / 28 * 2 * .pi
+        // Two lobes on top, a point at the bottom.
+        let radius = 0.82 + 0.12 * cos(angle * 2) - 0.1 * sin(angle)
+        return CGPoint(x: cos(angle) * radius, y: sin(angle) * radius)
+    })
 }

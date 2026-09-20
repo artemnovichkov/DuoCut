@@ -2,6 +2,8 @@ import SwiftUI
 
 /// The arcade screen: shapes fly, the blade waits on the fold, and timing is everything.
 struct ArcadeView: View {
+    let stats: PlayerStats
+
     @State private var game = ArcadeGame()
     @State private var detector = CutDetector()
     @State private var hasHinge = false
@@ -41,11 +43,16 @@ struct ArcadeView: View {
             .onChange(of: proxy.size, initial: true) { _, size in
                 game.layout(for: size)
             }
+            .onChange(of: game.phase) { _, phase in
+                guard phase == .over else { return }
+                stats.recordArcade(score: game.score, combo: game.bestCombo)
+            }
             // 👇 The API: the same snap as in Puzzle, but here it's about timing.
             .onHingeChange { _, newContext in
                 hasHinge = newContext.hinge != nil
                 guard let degrees = newContext.hinge?.angle.degrees else { return }
                 if let snap = detector.update(degrees: degrees, at: Date.timeIntervalSinceReferenceDate) {
+                    stats.recordFold()
                     // A snap starts the run as well as cutting, so the hinge is the only control.
                     if game.phase == .playing {
                         game.cut(with: fold.line, speed: snap.speed)
@@ -59,6 +66,7 @@ struct ArcadeView: View {
         .ignoresSafeArea()
         .sensoryFeedback(.impact(weight: .heavy), trigger: game.hits)
         .sensoryFeedback(.error, trigger: game.phase) { _, phase in phase == .over }
+        .achievementToast(stats)
     }
 
     private var hud: some View {
@@ -133,5 +141,5 @@ struct ArcadeView: View {
 }
 
 #Preview {
-    ArcadeView()
+    ArcadeView(stats: PlayerStats())
 }

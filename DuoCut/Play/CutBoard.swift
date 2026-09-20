@@ -33,6 +33,9 @@ final class CutBoard {
     private(set) var pieces: [Piece] = []
     /// Counts cuts, for haptics and animation triggers.
     private(set) var cuts = 0
+    /// The last cut, kept for the share card.
+    private(set) var lastCutLine: Line?
+    private(set) var lastCutShapes: [Polygon] = []
 
     private let gravity = 1_600.0
     private var lastDate: Date?
@@ -139,6 +142,8 @@ final class CutBoard {
             line: line
         )
         cuts += 1
+        lastCutLine = line
+        lastCutShapes = positives + negatives
         if keepPieces {
             shapes = positives + negatives
         } else {

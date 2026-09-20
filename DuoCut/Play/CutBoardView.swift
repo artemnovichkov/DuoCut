@@ -12,6 +12,8 @@ struct CutBoardView: View {
     var onCut: (CutBoard.Outcome) -> Void = { _ in }
     /// Called on every layout with the live fold line, so the screen above can show a preview.
     var onFoldChange: (FoldLine) -> Void = { _ in }
+    /// Called for every snap of the hinge, whether or not the blade hit anything.
+    var onSnap: () -> Void = {}
 
     @State private var detector = CutDetector()
     @State private var hasHinge = false
@@ -55,6 +57,7 @@ struct CutBoardView: View {
                 hasHinge = newContext.hinge != nil
                 guard let degrees = newContext.hinge?.angle.degrees else { return }
                 if let snap = detector.update(degrees: degrees, at: Date.timeIntervalSinceReferenceDate) {
+                    onSnap()
                     cut(with: fold.line, speed: snap.speed)
                 }
             }

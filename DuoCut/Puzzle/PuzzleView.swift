@@ -2,7 +2,11 @@ import SwiftUI
 
 /// The puzzle screen: the shape, the blade, the live split, and the result card.
 struct PuzzleView: View {
-    @State private var game = PuzzleGame()
+    @State var game: PuzzleGame
+    let stats: PlayerStats
+    /// Set for the daily challenge, which records a streak and offers a share card.
+    var daily: DailyStore?
+
     @State private var fold: FoldLine?
 
     var body: some View {
@@ -11,9 +15,18 @@ struct PuzzleView: View {
                 board: game.board,
                 keepPieces: game.keepsPieces,
                 onCut: { outcome in
+                    stats.recordCut(error: outcome.error(against: game.level.target))
                     withAnimation(.snappy) { game.record(outcome) }
+                    if case .judged(let judgement) = game.phase {
+                        stats.recordPuzzle(progress: game.progress)
+                        if let daily {
+                            daily.record(judgement)
+                            stats.recordDaily(streak: daily.streak)
+                        }
+                    }
                 },
-                onFoldChange: { fold = $0 }
+                onFoldChange: { fold = $0 },
+                onSnap: { stats.recordFold() }
             )
             .onChange(of: proxy.size, initial: true) { _, size in
                 game.layout(for: size)
@@ -25,9 +38,9 @@ struct PuzzleView: View {
             .overlay {
                 if case .judged(let judgement) = game.phase {
                     ResultCard(
-                        level: game.level,
+                        game: game,
                         judgement: judgement,
-                        isLast: game.isLastLevel,
+                        daily: daily,
                         retry: { withAnimation(.snappy) { game.retry() } },
                         next: { withAnimation(.snappy) { game.next() } }
                     )
@@ -37,6 +50,7 @@ struct PuzzleView: View {
         }
         .background(Palette.paper)
         .ignoresSafeArea()
+        .achievementToast(stats)
     }
 
     /// The title block sits clear of the fold: above a horizontal division, at the top otherwise.
@@ -47,7 +61,7 @@ struct PuzzleView: View {
 
     private var header: some View {
         VStack(spacing: 6) {
-            Text("\(game.level.title) · \(game.index + 1)/\(game.pack.levels.count)")
+            Text(subtitle)
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                 .foregroundStyle(Palette.ink.opacity(0.45))
                 .textCase(.uppercase)
@@ -58,6 +72,11 @@ struct PuzzleView: View {
         }
         .multilineTextAlignment(.center)
         .allowsHitTesting(false)
+    }
+
+    private var subtitle: String {
+        if daily != nil { return game.level.title }
+        return "\(game.level.title) · \(game.index + 1)/\(game.pack.levels.count)"
     }
 
     /// The live split, so the player can aim before the snap.
@@ -79,9 +98,9 @@ struct PuzzleView: View {
 
 /// What the cut turned out to be, with a way on.
 private struct ResultCard: View {
-    let level: Level
+    let game: PuzzleGame
     let judgement: Judgement
-    let isLast: Bool
+    let daily: DailyStore?
     let retry: () -> Void
     let next: () -> Void
 
@@ -103,18 +122,47 @@ private struct ResultCard: View {
                     .foregroundStyle(Palette.ink.opacity(0.55))
             }
             HStack(spacing: 12) {
-                Button("Again", action: retry)
-                    .buttonStyle(CardButton(isProminent: !judgement.isSuccess))
-                if judgement.isSuccess {
-                    Button(isLast ? "Start over" : "Next", action: next)
-                        .buttonStyle(CardButton(isProminent: true))
+                if daily == nil {
+                    Button("Again", action: retry)
+                        .buttonStyle(CardButton(isProminent: !judgement.isSuccess))
+                    if judgement.isSuccess {
+                        Button(game.isLastLevel ? "Start over" : "Next", action: next)
+                            .buttonStyle(CardButton(isProminent: true))
+                    }
                 }
+                share
             }
         }
+        .foregroundStyle(Palette.ink)
         .padding(28)
         .background(Palette.paper, in: .rect(cornerRadius: 28))
         .shadow(color: Palette.ink.opacity(0.12), radius: 30, y: 8)
         .padding(32)
+    }
+
+    @ViewBuilder
+    private var share: some View {
+        if let image = card.rendered() {
+            ShareLink(item: image, preview: SharePreview(shareTitle, image: image)) {
+                Label("Share", systemImage: "square.and.arrow.up")
+            }
+            .buttonStyle(CardButton(isProminent: daily != nil))
+        }
+    }
+
+    private var shareTitle: String {
+        daily != nil ? "DuoCut Daily" : "DuoCut · \(game.level.title)"
+    }
+
+    private var card: ShareCard {
+        ShareCard(
+            title: shareTitle,
+            shapes: game.board.lastCutShapes,
+            line: game.board.lastCutLine,
+            detail: judgement.detail,
+            stars: judgement.stars,
+            streak: daily?.streak
+        )
     }
 }
 
@@ -133,5 +181,5 @@ private struct CardButton: ButtonStyle {
 }
 
 #Preview {
-    PuzzleView()
+    PuzzleView(game: PuzzleGame(), stats: PlayerStats())
 }

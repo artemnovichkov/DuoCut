@@ -57,6 +57,7 @@
             { "path": "PuzzleProgress.swift", "target-membership": [ "DuoCut/compile-sources" ] },
             { "path": "PuzzleGame.swift", "target-membership": [ "DuoCut/compile-sources" ] },
             { "path": "PuzzleView.swift", "target-membership": [ "DuoCut/compile-sources" ] },
+            { "path": "PackListView.swift", "target-membership": [ "DuoCut/compile-sources" ] },
           ],
         }, {
           "kind": "group",
@@ -70,6 +71,10 @@
           "kind": "group",
           "path": "Meta",
           "children": [
+            { "path": "PlayerStats.swift", "target-membership": [ "DuoCut/compile-sources" ] },
+            { "path": "AchievementsView.swift", "target-membership": [ "DuoCut/compile-sources" ] },
+            { "path": "DailyChallenge.swift", "target-membership": [ "DuoCut/compile-sources" ] },
+            { "path": "ShareCard.swift", "target-membership": [ "DuoCut/compile-sources" ] },
           ],
         }, {
           "kind": "group",
