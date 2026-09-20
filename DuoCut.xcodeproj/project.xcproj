@@ -43,6 +43,7 @@
           "path": "Play",
           "children": [
             { "path": "Piece.swift", "target-membership": [ "DuoCut/compile-sources" ] },
+            { "path": "Token.swift", "target-membership": [ "DuoCut/compile-sources" ] },
             { "path": "CutBoard.swift", "target-membership": [ "DuoCut/compile-sources" ] },
             { "path": "CutBoardView.swift", "target-membership": [ "DuoCut/compile-sources" ] },
             { "path": "BladeOverlay.swift", "target-membership": [ "DuoCut/compile-sources" ] },
@@ -51,6 +52,11 @@
           "kind": "group",
           "path": "Puzzle",
           "children": [
+            { "path": "Level.swift", "target-membership": [ "DuoCut/compile-sources" ] },
+            { "path": "Levels.swift", "target-membership": [ "DuoCut/compile-sources" ] },
+            { "path": "PuzzleProgress.swift", "target-membership": [ "DuoCut/compile-sources" ] },
+            { "path": "PuzzleGame.swift", "target-membership": [ "DuoCut/compile-sources" ] },
+            { "path": "PuzzleView.swift", "target-membership": [ "DuoCut/compile-sources" ] },
           ],
         }, {
           "kind": "group",

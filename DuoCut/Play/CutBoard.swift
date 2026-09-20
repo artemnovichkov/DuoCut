@@ -2,27 +2,34 @@ import CoreGraphics
 import Foundation
 import Observation
 
-/// The shape under the blade, the pieces already cut off, and the physics that moves them.
+/// The shapes under the blade, the pieces already cut off, and the physics that moves them.
 ///
-/// Both modes play on a board: Puzzle puts one shape on it and scores the cut, Arcade throws
-/// shapes across it. The board itself only knows how to hold a shape, cut it with a line, and
-/// let the pieces fall.
+/// Both modes play on a board: Puzzle puts a shape on it and scores the cut, Arcade throws
+/// shapes across it. The board itself only knows how to hold shapes, cut them with a line, and
+/// let the leftovers fall.
 @Observable
 final class CutBoard {
     /// What the blade would do right now, recomputed as the player moves the shape.
-    struct Preview: Equatable {
-        var positive: Double
-        var negative: Double
+    struct Outcome: Equatable {
+        var positiveArea: Double
+        var negativeArea: Double
+        /// Tokens that ended up on each side.
+        var positiveTokens: [Token] = []
+        var negativeTokens: [Token] = []
 
-        var total: Double { positive + negative }
+        var total: Double { positiveArea + negativeArea }
         /// 0.5 when the line splits the shape evenly.
-        var share: Double { total > 0 ? positive / total : 0 }
-        /// How far off an even split is, from 0 to 1.
-        var error: Double { abs(share - 0.5) * 2 }
-        var isCutting: Bool { positive > 0 && negative > 0 }
+        var share: Double { total > 0 ? positiveArea / total : 0 }
+        var isCutting: Bool { positiveArea > 0 && negativeArea > 0 }
+
+        /// How far the split is from `target`, from 0 to 1.
+        func error(against target: Double) -> Double {
+            abs(share - target) / max(target, 1 - target)
+        }
     }
 
-    private(set) var shape: Polygon?
+    private(set) var shapes: [Polygon] = []
+    private(set) var tokens: [Token] = []
     private(set) var pieces: [Piece] = []
     /// Counts cuts, for haptics and animation triggers.
     private(set) var cuts = 0
@@ -30,31 +37,63 @@ final class CutBoard {
     private let gravity = 1_600.0
     private var lastDate: Date?
 
-    func place(_ polygon: Polygon) {
-        shape = polygon
+    var isEmpty: Bool { shapes.isEmpty }
+
+    func place(_ shapes: [Polygon], tokens: [Token] = []) {
+        self.shapes = shapes
+        self.tokens = tokens
         pieces = []
     }
 
     func clear() {
-        shape = nil
+        shapes = []
+        tokens = []
         pieces = []
     }
 
-    // MARK: - Moving the shape under the blade
+    // MARK: - Moving the shapes under the blade
+
+    /// The point everything turns around: the area-weighted center of what's on the board.
+    var center: CGPoint {
+        let total = shapes.reduce(0) { $0 + $1.area }
+        guard total > 0 else { return .zero }
+        let x = shapes.reduce(0) { $0 + $1.centroid.x * $1.area } / total
+        let y = shapes.reduce(0) { $0 + $1.centroid.y * $1.area } / total
+        return CGPoint(x: x, y: y)
+    }
+
+    func contains(_ point: CGPoint) -> Bool {
+        shapes.contains { $0.contains(point) }
+    }
 
     func translate(by offset: CGVector) {
-        shape = shape?.translated(by: offset)
+        shapes = shapes.map { $0.translated(by: offset) }
+        tokens = tokens.map {
+            var token = $0
+            token.position = CGPoint(x: $0.position.x + offset.dx, y: $0.position.y + offset.dy)
+            return token
+        }
     }
 
     func rotate(by radians: Double) {
-        guard let shape else { return }
-        self.shape = shape.rotated(by: radians, around: shape.centroid)
+        let pivot = center
+        shapes = shapes.map { $0.rotated(by: radians, around: pivot) }
+        let cosine = cos(radians)
+        let sine = sin(radians)
+        tokens = tokens.map {
+            var token = $0
+            let dx = $0.position.x - pivot.x
+            let dy = $0.position.y - pivot.y
+            token.position = CGPoint(x: pivot.x + dx * cosine - dy * sine, y: pivot.y + dx * sine + dy * cosine)
+            return token
+        }
     }
 
-    /// Keeps the shape reachable when a drag flings it past the edge.
+    /// Keeps the shapes reachable when a drag flings them past the edge.
     func keep(inside bounds: CGRect, margin: Double = 40) {
-        guard let shape else { return }
-        let box = shape.boundingBox
+        guard !shapes.isEmpty else { return }
+        var box = shapes[0].boundingBox
+        for shape in shapes.dropFirst() { box = box.union(shape.boundingBox) }
         var dx = 0.0
         var dy = 0.0
         if box.maxX < bounds.minX + margin { dx = bounds.minX + margin - box.maxX }
@@ -66,28 +105,61 @@ final class CutBoard {
 
     // MARK: - Cutting
 
-    func preview(with line: Line) -> Preview? {
-        guard let shape else { return nil }
-        let areas = PolygonCut.split(shape, by: line).areas()
-        return Preview(positive: areas.positive, negative: areas.negative)
+    /// What the blade would do to the board as it stands, without touching anything.
+    func preview(with line: Line) -> Outcome? {
+        guard !shapes.isEmpty else { return nil }
+        var positive = 0.0
+        var negative = 0.0
+        for shape in shapes {
+            let areas = PolygonCut.split(shape, by: line).areas()
+            positive += areas.positive
+            negative += areas.negative
+        }
+        return outcome(positive: positive, negative: negative, line: line)
     }
 
-    /// Cuts the shape along `line`. Returns what the cut turned out to be, or `nil` if the
-    /// blade missed the shape entirely.
+    /// Cuts everything on the board along `line`. Returns what the cut turned out to be, or
+    /// `nil` when the blade missed. With `keepPieces`, the halves stay on the board for the
+    /// next cut instead of flying off.
     @discardableResult
-    func cut(with line: Line, speed: Double = 0) -> Preview? {
-        guard let shape else { return nil }
-        let result = PolygonCut.split(shape, by: line)
-        guard result.isCut else { return nil }
-        let areas = result.areas()
-        // A hard snap throws the pieces further, but never so far that they blink out.
-        let launch = min(max(speed * 0.6, 140), 420)
-        for polygon in result.positive + result.negative {
-            pieces.append(Piece(polygon: polygon, line: line, speed: launch, spin: .random(in: 0.6...2.4)))
+    func cut(with line: Line, speed: Double = 0, keepPieces: Bool = false) -> Outcome? {
+        guard !shapes.isEmpty else { return nil }
+        var positives: [Polygon] = []
+        var negatives: [Polygon] = []
+        for shape in shapes {
+            let result = PolygonCut.split(shape, by: line)
+            positives += result.positive
+            negatives += result.negative
         }
-        self.shape = nil
+        guard !positives.isEmpty, !negatives.isEmpty else { return nil }
+
+        let outcome = outcome(
+            positive: positives.reduce(0) { $0 + $1.area },
+            negative: negatives.reduce(0) { $0 + $1.area },
+            line: line
+        )
         cuts += 1
-        return Preview(positive: areas.positive, negative: areas.negative)
+        if keepPieces {
+            shapes = positives + negatives
+        } else {
+            // A hard snap throws the pieces further, but never so far that they blink out.
+            let launch = min(max(speed * 0.6, 140), 420)
+            for polygon in positives + negatives {
+                pieces.append(Piece(polygon: polygon, line: line, speed: launch, spin: .random(in: 0.6...2.4)))
+            }
+            shapes = []
+            tokens = []
+        }
+        return outcome
+    }
+
+    private func outcome(positive: Double, negative: Double, line: Line) -> Outcome {
+        Outcome(
+            positiveArea: positive,
+            negativeArea: negative,
+            positiveTokens: tokens.filter { line.signedDistance(to: $0.position) > 0 },
+            negativeTokens: tokens.filter { line.signedDistance(to: $0.position) <= 0 }
+        )
     }
 
     // MARK: - Physics
