@@ -21,6 +21,7 @@
           "children": [
             { "path": "DuoCutApp.swift", "target-membership": [ "DuoCut/compile-sources" ] },
             { "path": "RootView.swift", "target-membership": [ "DuoCut/compile-sources" ] },
+            { "path": "Palette.swift", "target-membership": [ "DuoCut/compile-sources" ] },
           ],
         }, {
           "kind": "group",
@@ -41,6 +42,10 @@
           "kind": "group",
           "path": "Play",
           "children": [
+            { "path": "Piece.swift", "target-membership": [ "DuoCut/compile-sources" ] },
+            { "path": "CutBoard.swift", "target-membership": [ "DuoCut/compile-sources" ] },
+            { "path": "CutBoardView.swift", "target-membership": [ "DuoCut/compile-sources" ] },
+            { "path": "BladeOverlay.swift", "target-membership": [ "DuoCut/compile-sources" ] },
           ],
         }, {
           "kind": "group",

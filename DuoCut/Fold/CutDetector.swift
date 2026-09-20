@@ -42,12 +42,12 @@ struct CutDetector {
             if high - degrees >= threshold {
                 isArmed = false
                 lowest = degrees
-                tension = 1
+                // The blade has landed: stop glowing until the device opens back up.
+                tension = 0
                 return Cut(speed: speed)
             }
         } else {
             lowest = min(lowest, degrees)
-            tension = 1
             if degrees - lowest >= rearm {
                 isArmed = true
                 highest = degrees
