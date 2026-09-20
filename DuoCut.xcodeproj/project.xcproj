@@ -62,6 +62,9 @@
           "kind": "group",
           "path": "Arcade",
           "children": [
+            { "path": "Flyer.swift", "target-membership": [ "DuoCut/compile-sources" ] },
+            { "path": "ArcadeGame.swift", "target-membership": [ "DuoCut/compile-sources" ] },
+            { "path": "ArcadeView.swift", "target-membership": [ "DuoCut/compile-sources" ] },
           ],
         }, {
           "kind": "group",
