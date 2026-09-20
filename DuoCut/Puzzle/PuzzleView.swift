@@ -68,7 +68,6 @@ struct PuzzleView: View {
             Text(game.level.instruction)
                 .font(.system(size: 26, weight: .bold, design: .rounded))
                 .foregroundStyle(Palette.ink)
-            split
         }
         .multilineTextAlignment(.center)
         .allowsHitTesting(false)
@@ -79,21 +78,6 @@ struct PuzzleView: View {
         return "\(game.level.title) · \(game.index + 1)/\(game.pack.levels.count)"
     }
 
-    /// The live split, so the player can aim before the snap.
-    @ViewBuilder
-    private var split: some View {
-        if case .aiming = game.phase, let fold, let outcome = game.board.preview(with: fold.line), outcome.isCutting {
-            Text(percent(outcome.share) + " / " + percent(1 - outcome.share))
-                .font(.system(size: 17, weight: .semibold, design: .rounded))
-                .monospacedDigit()
-                .foregroundStyle(Palette.blade)
-                .padding(.top, 2)
-        }
-    }
-
-    private func percent(_ value: Double) -> String {
-        (value * 100).formatted(.number.precision(.fractionLength(1))) + "%"
-    }
 }
 
 /// What the cut turned out to be, with a way on.

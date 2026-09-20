@@ -27,7 +27,7 @@ Other slicing games let you draw the cut. Here the cut can't move — it lives o
 you move the shape instead.
 
 - **Drag** a shape with one finger, **rotate** it with two.
-- Watch the live split above the shape: `50.0% / 50.0%` is a perfect cut.
+- Judge it by eye. There's no live readout — the split only shows up after the cut.
 - **Snap the hinge** — fold it about 12° — and the blade goes through the fold.
 
 Three ways to play:

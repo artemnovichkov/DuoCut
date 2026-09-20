@@ -9,7 +9,8 @@ import Observation
 /// let the leftovers fall.
 @Observable
 final class CutBoard {
-    /// What the blade would do right now, recomputed as the player moves the shape.
+    /// What a cut turned out to be. The player only ever sees this after the blade lands —
+    /// showing it while aiming would turn the game into dialing a number to 50.0.
     struct Outcome: Equatable {
         var positiveArea: Double
         var negativeArea: Double
@@ -107,19 +108,6 @@ final class CutBoard {
     }
 
     // MARK: - Cutting
-
-    /// What the blade would do to the board as it stands, without touching anything.
-    func preview(with line: Line) -> Outcome? {
-        guard !shapes.isEmpty else { return nil }
-        var positive = 0.0
-        var negative = 0.0
-        for shape in shapes {
-            let areas = PolygonCut.split(shape, by: line).areas()
-            positive += areas.positive
-            negative += areas.negative
-        }
-        return outcome(positive: positive, negative: negative, line: line)
-    }
 
     /// Cuts everything on the board along `line`. Returns what the cut turned out to be, or
     /// `nil` when the blade missed. With `keepPieces`, the halves stay on the board for the
