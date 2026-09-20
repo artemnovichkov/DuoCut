@@ -26,11 +26,16 @@
           "kind": "group",
           "path": "Geometry",
           "children": [
+            { "path": "Line.swift", "target-membership": [ "DuoCut/compile-sources" ] },
+            { "path": "Polygon.swift", "target-membership": [ "DuoCut/compile-sources" ] },
+            { "path": "PolygonCut.swift", "target-membership": [ "DuoCut/compile-sources" ] },
           ],
         }, {
           "kind": "group",
           "path": "Fold",
           "children": [
+            { "path": "FoldLine.swift", "target-membership": [ "DuoCut/compile-sources" ] },
+            { "path": "CutDetector.swift", "target-membership": [ "DuoCut/compile-sources" ] },
           ],
         }, {
           "kind": "group",
@@ -64,7 +69,8 @@
       "kind": "group",
       "path": "DuoCutTests",
       "children": [
-        { "path": "SmokeTests.swift", "target-membership": [ "DuoCutTests/compile-sources" ] },
+        { "path": "PolygonTests.swift", "target-membership": [ "DuoCutTests/compile-sources" ] },
+        { "path": "PolygonCutTests.swift", "target-membership": [ "DuoCutTests/compile-sources" ] },
       ],
     }, {
       "kind": "group",
