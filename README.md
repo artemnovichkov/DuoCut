@@ -16,8 +16,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey.svg" alt="MIT License"></a>
 </p>
 
-<!-- Arcade demo video goes here: drag the .mp4 into a GitHub comment box and paste the
-     https://github.com/user-attachments/... URL it gives you on its own line. -->
+https://github.com/user-attachments/assets/bee58d84-cd29-41d3-a10f-b011ebf7930a
 
 <p align="center">
   <img src=".github/images/puzzle.png" width="49%" alt="A square waiting beside the fold, the goal in the other half of the screen"><img src=".github/images/arcade.png" width="49%" alt="Shapes flying across the fold in Arcade">
