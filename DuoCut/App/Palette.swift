@@ -1,12 +1,21 @@
 import SwiftUI
 
 /// Flat, calm, high contrast: paper, ink, and one accent.
+///
+/// The colours live in the asset catalog so they have a dark variant: paper turns to night,
+/// ink to chalk, and the accents brighten a touch. Everything else in the game is built out
+/// of `ink` at some opacity, so the whole app follows along.
 enum Palette {
-    static let paper = Color(red: 0.97, green: 0.95, blue: 0.91)
-    static let ink = Color(red: 0.13, green: 0.13, blue: 0.15)
-    static let blade = Color(red: 0.91, green: 0.42, blue: 0.36)
-    static let shape = Color(red: 0.42, green: 0.56, blue: 0.86)
-    static let shapeAlternate = Color(red: 0.95, green: 0.74, blue: 0.36)
+    static let paper = Color("Paper")
+    static let ink = Color("Ink")
+    static let blade = Color("Blade")
+    static let shape = Color("Shape")
+    static let shapeAlternate = Color("ShapeAlternate")
+
+    /// A neighbouring piece, one shade apart, so a board of cut pieces doesn't read as one blob.
+    static func piece(_ index: Int) -> Color {
+        index.isMultiple(of: 2) ? shape : shape.opacity(0.72)
+    }
 }
 
 extension Polygon {

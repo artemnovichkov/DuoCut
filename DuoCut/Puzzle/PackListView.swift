@@ -6,18 +6,9 @@ struct PackListView: View {
     var onPick: (Pack) -> Void
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 14) {
-                ForEach(Levels.packs) { pack in
-                    row(pack)
-                }
-            }
-            .padding(24)
-            .frame(maxWidth: 560)
-            .frame(maxWidth: .infinity)
+        FoldColumns(title: "Puzzle", items: Levels.packs) { pack in
+            row(pack)
         }
-        .background(Palette.paper)
-        .scrollContentBackground(.hidden)
     }
 
     private func row(_ pack: Pack) -> some View {
@@ -32,7 +23,7 @@ struct PackListView: View {
                         .font(.system(size: 20, weight: .bold, design: .rounded))
                     Text(isOpen ? pack.subtitle : "\(pack.starsToUnlock) stars to open")
                         .font(.system(size: 14, design: .rounded))
-                        .foregroundStyle(Palette.ink.opacity(0.5))
+                        .foregroundStyle(Palette.ink.opacity(0.55))
                 }
                 Spacer()
                 if isOpen {
@@ -42,13 +33,12 @@ struct PackListView: View {
                         .foregroundStyle(Palette.shapeAlternate)
                 } else {
                     Image(systemName: "lock.fill")
-                        .foregroundStyle(Palette.ink.opacity(0.25))
+                        .foregroundStyle(Palette.ink.opacity(0.4))
                 }
             }
-            .foregroundStyle(Palette.ink)
+            .foregroundStyle(isOpen ? Palette.ink : Palette.ink.opacity(0.75))
             .padding(18)
-            .background(Palette.ink.opacity(0.04), in: .rect(cornerRadius: 20))
-            .opacity(isOpen ? 1 : 0.6)
+            .background(Palette.ink.opacity(isOpen ? 0.06 : 0.03), in: .rect(cornerRadius: 20))
         }
         .buttonStyle(.plain)
         .disabled(!isOpen)

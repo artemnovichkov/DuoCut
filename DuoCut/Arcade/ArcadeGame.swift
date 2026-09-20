@@ -5,8 +5,9 @@ import Observation
 /// Shapes fly across the fold; snap the hinge as one crosses it.
 ///
 /// One snap cuts everything touching the blade at that instant, so the timing — not the aim —
-/// is what the player is practicing. Bombs end the run, and fruit that falls back out costs
-/// a life.
+/// is what the player is practicing. Shapes come in bursts and meet the blade a little before
+/// or after the top of their arc, which is what makes a combo something you can aim for
+/// rather than a coincidence. Bombs end the run, and fruit that falls back out costs a life.
 @Observable
 final class ArcadeGame {
     enum Phase: Equatable {
@@ -24,30 +25,40 @@ final class ArcadeGame {
     private(set) var bestCombo = UserDefaults.standard.integer(forKey: "arcade.combo")
     /// Counts snaps that connected, for haptics.
     private(set) var hits = 0
+    /// A game over holds still for a moment, so the tap that ended it doesn't start the next run.
+    private(set) var canRestart = false
 
     private let gravity = 900.0
+    /// Fruit missed in the first seconds is free: a run shouldn't be over before it starts.
+    private let grace = 4.0
     private var size = CGSize.zero
+    private var fold: FoldLine?
     private var lastDate: Date?
     private var nextSpawn = 0.0
     private var time = 0.0
+    private var endedAt: Double?
 
-    /// Seconds between throws, tightening as the score climbs.
-    private var spawnInterval: Double { max(0.55, 1.5 - Double(score) * 0.02) }
+    /// Seconds between bursts, tightening as the score climbs.
+    private var spawnInterval: Double { max(0.7, 1.6 - Double(score) * 0.012) }
 
-    func start(in newSize: CGSize) {
+    func layout(for newSize: CGSize, fold newFold: FoldLine) {
         size = newSize
+        self.fold = newFold
+    }
+
+    func start(in newSize: CGSize, fold newFold: FoldLine) {
+        size = newSize
+        fold = newFold
         flyers = []
         pieces = []
         score = 0
         lives = 3
         lastCombo = 0
         time = 0
-        nextSpawn = 0.2
+        endedAt = nil
+        canRestart = false
+        nextSpawn = 0.4
         phase = .playing
-    }
-
-    func layout(for newSize: CGSize) {
-        size = newSize
     }
 
     func step(to date: Date) {
@@ -63,15 +74,18 @@ final class ArcadeGame {
         // After a game over the throws still land; they just don't cost anything.
         guard phase == .playing else {
             flyers.removeAll { $0.hasFallen(below: size.height + 120) }
+            if let endedAt, time - endedAt > 0.8 { canRestart = true }
             return
         }
 
         let fallen = flyers.filter { $0.hasFallen(below: size.height + 120) }
         flyers.removeAll { $0.hasFallen(below: size.height + 120) }
-        for flyer in fallen where flyer.kind == .fruit {
-            lives -= 1
+        if time > grace {
+            for flyer in fallen where flyer.kind == .fruit {
+                lives -= 1
+            }
         }
-        if lives <= 0 { end() }
+        if lives <= 0 { finish() }
 
         nextSpawn -= dt
         if nextSpawn <= 0 {
@@ -112,37 +126,76 @@ final class ArcadeGame {
             bestCombo = combo
             UserDefaults.standard.set(bestCombo, forKey: "arcade.combo")
         }
-        if hitBomb { end() }
+        if hitBomb { finish() }
     }
 
-    private func end() {
+    /// Ends the run and banks the score. Also called when the player walks out mid-game.
+    func finish() {
+        guard phase == .playing else { return }
         phase = .over
+        endedAt = time
         if score > best {
             best = score
             UserDefaults.standard.set(best, forKey: "arcade.best")
         }
     }
 
-    /// Throws one shape up across the fold, so it crosses the blade near the top of its arc.
+    // MARK: - Throwing
+
+    /// One burst, aimed so its shapes meet the blade within a fraction of a second of each
+    /// other. That's the window a combo lives in.
     private func spawn() {
-        let isBomb = score >= 6 && Double.random(in: 0...1) < 0.16
-        let radius = Double.random(in: 34...52)
-        let fromLeft = Bool.random()
-        let startX = fromLeft ? Double.random(in: 0.08...0.3) : Double.random(in: 0.7...0.92)
-        let start = CGPoint(x: size.width * startX, y: size.height + radius)
-        // Aim the arc at the middle of the screen, where the fold is.
-        let rise = Double.random(in: 0.55...0.78) * size.height
-        let upward = -sqrt(2 * gravity * rise)
-        let timeToApex = -upward / gravity
-        let targetX = size.width * Double.random(in: 0.42...0.58)
-        let sideways = (targetX - start.x) / timeToApex
+        guard let fold, size.height > 0 else { return }
+        let crossing = Double.random(in: 0.85...1.35)
+        for index in 0..<burstSize() {
+            launch(fold: fold, crossing: crossing + Double(index) * 0.1 + .random(in: -0.08...0.08))
+        }
+    }
+
+    private func burstSize() -> Int {
+        let extra = min(2, score / 18)
+        let pair = Double.random(in: 0...1) < 0.5 ? 1 : 0
+        return 1 + pair + extra
+    }
+
+    /// Throws one shape so that it crosses the blade — wherever the blade actually is —
+    /// `crossing` seconds from now.
+    private func launch(fold: FoldLine, crossing: Double) {
+        let reach = min(max(min(size.width, size.height) * 0.055, 34), 88)
+        let radius = reach * Double.random(in: 0.85...1.15)
+        let isBomb = score >= 8 && Double.random(in: 0...1) < 0.14
+        let start: CGPoint
+        let velocity: CGVector
+
+        switch fold.axis {
+        case .vertical:
+            let fromLeft = Bool.random()
+            let startX = size.width * (fromLeft ? .random(in: 0.06...0.28) : .random(in: 0.72...0.94))
+            start = CGPoint(x: startX, y: size.height + radius)
+            let rise = Double.random(in: 0.58...0.82) * size.height
+            let upward = -sqrt(2 * gravity * rise)
+            let flight = -2 * upward / gravity
+            let meet = min(max(crossing, 0.25), max(0.3, flight - 0.2))
+            let target = fold.line.point.x + Double.random(in: -0.04...0.04) * size.width
+            velocity = CGVector(dx: (target - startX) / meet, dy: upward)
+        case .horizontal:
+            // The blade lies across the screen, so anything thrown up has to cross it. The
+            // arc only needs to clear the line for the shape to come back through.
+            let startX = size.width * Double.random(in: 0.12...0.88)
+            start = CGPoint(x: startX, y: size.height + radius)
+            let clearance = Double.random(in: 0.12...0.3) * size.height
+            let rise = max(size.height - fold.line.point.y + clearance, 0.4 * size.height)
+            let upward = -sqrt(2 * gravity * rise)
+            let drift = Double.random(in: -0.18...0.18) * size.width
+            velocity = CGVector(dx: drift / (-upward / gravity), dy: upward)
+        }
 
         let shape: Polygon = isBomb
             ? .regular(sides: 8, radius: radius * 0.9, center: start)
             : .regular(sides: Int.random(in: 5...9), radius: radius, center: start, rotation: .random(in: 0...2))
         flyers.append(Flyer(
             polygon: shape,
-            velocity: CGVector(dx: sideways, dy: upward),
+            velocity: velocity,
             spin: .random(in: -1.6...1.6),
             kind: isBomb ? .bomb : .fruit
         ))

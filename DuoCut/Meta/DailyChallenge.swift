@@ -13,37 +13,53 @@ enum DailyChallenge {
     static func level(for date: Date = .now) -> Level {
         let number = day(for: date)
         var random = SeededGenerator(seed: UInt64(number))
+        let shape = shape(with: &random)
         return Level(
             id: "daily-\(number)",
-            title: "Daily",
-            goal: .equalHalves,
-            shapes: [shape(with: &random)],
+            title: title(for: date),
+            // A symmetric shape cut in half is no puzzle at all — line it up with the fold
+            // and you're done — so those days ask for a fraction instead.
+            goal: shape.isSymmetric
+                ? (Bool.random(using: &random) ? .ratio(1.0 / 3) : .ratio(0.25))
+                : (Bool.random(using: &random) ? .equalHalves : .ratio(1.0 / 3)),
+            shapes: [shape.polygon],
             startRotation: .random(in: 0..<(2 * .pi), using: &random),
+            // In shape units, and well off to one side: the day starts with work to do.
             startOffset: CGVector(
-                dx: .random(in: -60...60, using: &random),
-                dy: .random(in: -40...40, using: &random)
+                dx: (Bool.random(using: &random) ? 1 : -1) * .random(in: 0.6...1.2, using: &random),
+                dy: .random(in: -0.4...0.4, using: &random)
             )
         )
     }
 
-    /// A regular shape, a star, or a lumpy blob — whatever the day's seed says.
-    private static func shape(with random: inout SeededGenerator) -> Polygon {
+    /// What the day is called on screen and on the share card.
+    static func title(for date: Date = .now) -> String {
+        date.formatted(.dateTime.month(.abbreviated).day())
+    }
+
+    /// A regular shape, a star, or a lumpy blob — whatever the day's seed says. The blob is
+    /// the only one that's lopsided, and the goal is picked to match.
+    private static func shape(with random: inout SeededGenerator) -> (polygon: Polygon, isSymmetric: Bool) {
         switch Int.random(in: 0..<3, using: &random) {
         case 0:
-            return .regular(sides: .random(in: 3...9, using: &random), radius: 0.9)
+            return (.regular(sides: .random(in: 3...9, using: &random), radius: 0.9), true)
         case 1:
-            return .star(
-                points: .random(in: 5...8, using: &random),
-                outerRadius: 1,
-                innerRadius: .random(in: 0.35...0.6, using: &random)
+            return (
+                .star(
+                    points: .random(in: 5...8, using: &random),
+                    outerRadius: 1,
+                    innerRadius: .random(in: 0.35...0.6, using: &random)
+                ),
+                true
             )
         default:
             let count = Int.random(in: 7...11, using: &random)
             let radii = (0..<count).map { _ in Double.random(in: 0.55...1, using: &random) }
-            return Polygon(radii.enumerated().map { index, radius in
+            let blob = Polygon(radii.enumerated().map { index, radius in
                 let angle = Double(index) / Double(count) * 2 * .pi
                 return CGPoint(x: cos(angle) * radius, y: sin(angle) * radius)
             })
+            return (blob, false)
         }
     }
 }
@@ -92,6 +108,19 @@ final class DailyStore {
     func record(for date: Date = .now) -> Record? {
         let today = DailyChallenge.day(for: date)
         return history.first { $0.day == today }
+    }
+
+    /// The last week, newest first, for the done screen.
+    var recent: [Record] {
+        history.suffix(7).reversed()
+    }
+
+    /// What goes out to a chat when there's no fresh cut to draw a card from.
+    func shareText(for record: Record, date: Date = .now) -> String {
+        var line = "DuoCut \(DailyChallenge.title(for: date)) · \(record.detail)"
+        line += " · \(String(repeating: "★", count: record.stars))\(String(repeating: "☆", count: 3 - record.stars))"
+        if streak > 1 { line += " · \(streak) day streak" }
+        return line
     }
 
     /// Today counts once. A later cut doesn't replace the first one.

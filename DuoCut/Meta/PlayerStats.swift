@@ -28,6 +28,14 @@ final class PlayerStats {
         bestCombo = defaults.integer(forKey: "arcade.combo")
         bestArcadeScore = defaults.integer(forKey: "arcade.best")
         unlocked = Set(defaults.stringArray(forKey: "stats.achievements") ?? [])
+        // Stars, packs and the daily streak live with the progress that owns them, so they
+        // are read back here rather than kept twice. Without this an achievement for stars
+        // earned last week could only unlock after another level in this session.
+        let progress = PuzzleProgress(defaults: defaults)
+        stars = progress.total
+        completedPacks = Levels.packs.count { progress.stars(in: $0) == $0.levels.count * 3 }
+        dailyStreak = defaults.integer(forKey: "daily.streak")
+        check(announce: false)
     }
 
     // MARK: - Events
@@ -39,11 +47,12 @@ final class PlayerStats {
         check()
     }
 
-    /// A cut that landed, with how far off the goal it was, from 0 to 1.
-    func recordCut(error: Double) {
+    /// A cut that landed. `error` says how far off an area goal it was, from 0 to 1, and is
+    /// `nil` for the goals that aren't about area — those can't be a perfect 50.0 / 50.0.
+    func recordCut(error: Double?) {
         cuts += 1
         defaults.set(cuts, forKey: "stats.cuts")
-        if error < 0.002 {
+        if let error, error < 0.002 {
             perfectCuts += 1
             defaults.set(perfectCuts, forKey: "stats.perfect")
         }
@@ -58,9 +67,7 @@ final class PlayerStats {
 
     func recordPuzzle(progress: PuzzleProgress) {
         stars = progress.total
-        completedPacks = Levels.packs.filter { pack in
-            progress.stars(in: pack) == pack.levels.count * 3
-        }.count
+        completedPacks = Levels.packs.count { progress.stars(in: $0) == $0.levels.count * 3 }
         check()
     }
 
@@ -79,10 +86,12 @@ final class PlayerStats {
         unlocked.contains(achievement.id)
     }
 
-    private func check() {
+    /// `announce` is off when catching up on what the player already earned, so starting the
+    /// app doesn't fire a stack of toasts for old news.
+    private func check(announce: Bool = true) {
         for achievement in Achievement.all where !unlocked.contains(achievement.id) && achievement.isEarned(self) {
             unlocked.insert(achievement.id)
-            latest = achievement
+            if announce { latest = achievement }
         }
         defaults.set(Array(unlocked), forKey: "stats.achievements")
     }

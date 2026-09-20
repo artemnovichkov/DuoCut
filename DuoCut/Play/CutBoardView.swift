@@ -8,17 +8,25 @@ struct CutBoardView: View {
     let board: CutBoard
     /// Multi-cut levels keep the halves on the board instead of throwing them away.
     var keepPieces = false
-    /// Called with the fold line and the result of every cut the player lands.
+    /// Called with the result of every cut the player lands.
     var onCut: (CutBoard.Outcome) -> Void = { _ in }
-    /// Called on every layout with the live fold line, so the screen above can show a preview.
+    /// Called when the blade came down but touched nothing.
+    var onMiss: () -> Void = {}
+    /// Called on every layout with the live fold line, so the screen above can lay out around it.
     var onFoldChange: (FoldLine) -> Void = { _ in }
     /// Called for every snap of the hinge, whether or not the blade hit anything.
     var onSnap: () -> Void = {}
+    /// Called with whether this device actually has a hinge, for the on-screen hint.
+    var onHinge: (Bool) -> Void = { _ in }
 
     @State private var detector = CutDetector()
-    @State private var hasHinge = false
+    @State private var dragStart: CGPoint?
+    @State private var isMovingShape = false
     @State private var lastDragTranslation = CGSize.zero
     @State private var lastRotation = SwiftUI.Angle.zero
+
+    /// How far a swipe has to travel before it counts as a cut rather than a stray touch.
+    private let swipeToCut = 60.0
 
     var body: some View {
         GeometryReader { proxy in
@@ -29,11 +37,16 @@ struct CutBoardView: View {
                     for piece in board.pieces {
                         context.opacity = piece.opacity
                         context.fill(piece.polygon.path, with: .color(Palette.shape))
+                        for token in piece.tokens { draw(token, in: &context) }
                     }
                     context.opacity = 1
-                    for shape in board.shapes {
-                        context.fill(shape.path, with: .color(Palette.shape))
-                        context.stroke(shape.path, with: .color(Palette.ink.opacity(0.15)), lineWidth: 1)
+                    for (index, shape) in board.shapes.enumerated() {
+                        // Several pieces on the board are drawn a hair apart and a shade
+                        // different, so the player can see the cut that already landed.
+                        let drawn = board.shapes.count > 1 ? inset(shape) : shape
+                        let color = board.shapes.count > 1 ? Palette.piece(index) : Palette.shape
+                        context.fill(drawn.path, with: .color(color))
+                        context.stroke(drawn.path, with: .color(Palette.ink.opacity(0.15)), lineWidth: 1)
                     }
                     for token in board.tokens {
                         draw(token, in: &context)
@@ -43,6 +56,7 @@ struct CutBoardView: View {
                     board.step(to: date)
                 }
             }
+            .background { FoldBand(fold: fold) }
             .overlay {
                 BladeOverlay(fold: fold, tension: detector.tension)
             }
@@ -54,7 +68,7 @@ struct CutBoardView: View {
             }
             // 👇 The API: a snap of the hinge is the cut.
             .onHingeChange { _, newContext in
-                hasHinge = newContext.hinge != nil
+                onHinge(newContext.hinge != nil)
                 guard let degrees = newContext.hinge?.angle.degrees else { return }
                 if let snap = detector.update(degrees: degrees, at: Date.timeIntervalSinceReferenceDate) {
                     onSnap()
@@ -63,6 +77,15 @@ struct CutBoardView: View {
             }
         }
         .sensoryFeedback(.impact(weight: .heavy), trigger: board.cuts)
+    }
+
+    /// Pulls a piece a couple of points in from its own edge, which shows up as a seam
+    /// between two pieces that used to be one shape.
+    private func inset(_ shape: Polygon) -> Polygon {
+        let box = shape.boundingBox
+        let reach = max(box.width, box.height)
+        guard reach > 12 else { return shape }
+        return shape.scaled(by: 1 - 4 / reach, around: shape.centroid)
     }
 
     private func draw(_ token: Token, in context: inout GraphicsContext) {
@@ -83,16 +106,27 @@ struct CutBoardView: View {
     }
 
     private func cut(with line: Line, speed: Double) {
-        guard let outcome = board.cut(with: line, speed: speed, keepPieces: keepPieces) else { return }
+        guard let outcome = board.cut(with: line, speed: speed, keepPieces: keepPieces) else {
+            // The blade came down on empty paper. Say so instead of doing nothing.
+            if !board.isEmpty { onMiss() }
+            return
+        }
         onCut(outcome)
     }
 
-    /// Dragging a shape moves it; dragging anywhere else across the blade cuts, so the game
-    /// still works on a phone that doesn't fold.
+    /// Dragging a shape moves it; a long enough drag anywhere else across the blade cuts, so
+    /// the game still works on a phone that doesn't fold.
     private func dragGesture(fold: FoldLine, bounds: CGRect) -> some Gesture {
         DragGesture(minimumDistance: 0)
             .onChanged { value in
-                guard board.contains(value.startLocation) else { return }
+                // A gesture that starts somewhere new is a new drag, even if the last one
+                // was cancelled without an end.
+                if dragStart != value.startLocation {
+                    dragStart = value.startLocation
+                    lastDragTranslation = .zero
+                    isMovingShape = board.contains(value.startLocation)
+                }
+                guard isMovingShape else { return }
                 let delta = CGVector(
                     dx: value.translation.width - lastDragTranslation.width,
                     dy: value.translation.height - lastDragTranslation.height
@@ -102,12 +136,17 @@ struct CutBoardView: View {
                 board.keep(inside: bounds)
             }
             .onEnded { value in
-                defer { lastDragTranslation = .zero }
-                guard !board.contains(value.startLocation) else { return }
+                defer {
+                    dragStart = nil
+                    lastDragTranslation = .zero
+                    isMovingShape = false
+                }
+                guard !isMovingShape, !board.contains(value.startLocation) else { return }
+                let length = hypot(value.translation.width, value.translation.height)
+                guard length >= swipeToCut else { return }
                 let crossed = fold.line.signedDistance(to: value.startLocation)
                     * fold.line.signedDistance(to: value.location) < 0
                 guard crossed else { return }
-                let length = hypot(value.translation.width, value.translation.height)
                 cut(with: fold.line, speed: length)
             }
     }

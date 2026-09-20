@@ -32,9 +32,12 @@ you move the shape instead.
 
 Three ways to play:
 
-- **Daily** — one shape a day, the same for everyone, one cut. Keeps a streak and makes a share card.
-- **Puzzle** — four packs of authored levels: even halves, exact fractions, sorting colored tokens, and two-cut levels.
-- **Arcade** — shapes fly across the fold. Snap as they cross it; a snap cuts everything touching the blade at once.
+- **Daily** — one shape a day, the same for everyone, one cut. It counts once: after that the day
+  shows your result, your streak and the last week, until tomorrow's shape.
+- **Puzzle** — four packs of authored levels: even halves, exact fractions, sorting colored tokens,
+  and multi-cut levels that are scored on the pieces you end up with, not on the cuts.
+- **Arcade** — shapes fly across the fold in bursts. Snap as they cross it; a snap cuts everything
+  touching the blade at once, which is where the combos come from.
 
 No hinge? Swipe across the cut line instead. The whole game works on a phone that doesn't fold.
 
@@ -112,6 +115,11 @@ Each source file is listed there with its target membership.
 - The region's frame is a rectangle, not a line. Its longer side tells you whether the fold runs
   vertically or horizontally.
 - The outer display reports no regions at all, so the game falls back to the middle of the view.
+- Anything the player has to read belongs in one half. The region gives you both halves for free,
+  so the title, the result card and the arcade banner are offset into the roomier one instead of
+  being centred across the crease. On the inner display, centred *is* on the crease.
+- A shape wider than one half can't be lined up with the blade without already crossing it, so
+  levels are scaled to fit a half. That's the narrow outer display, mostly.
 
 ## Inspiration
 

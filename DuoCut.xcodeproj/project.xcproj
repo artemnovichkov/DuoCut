@@ -22,6 +22,7 @@
             { "path": "DuoCutApp.swift", "target-membership": [ "DuoCut/compile-sources" ] },
             { "path": "RootView.swift", "target-membership": [ "DuoCut/compile-sources" ] },
             { "path": "Palette.swift", "target-membership": [ "DuoCut/compile-sources" ] },
+            { "path": "FoldColumns.swift", "target-membership": [ "DuoCut/compile-sources" ] },
           ],
         }, {
           "kind": "group",
@@ -74,6 +75,7 @@
             { "path": "PlayerStats.swift", "target-membership": [ "DuoCut/compile-sources" ] },
             { "path": "AchievementsView.swift", "target-membership": [ "DuoCut/compile-sources" ] },
             { "path": "DailyChallenge.swift", "target-membership": [ "DuoCut/compile-sources" ] },
+            { "path": "DailyDoneView.swift", "target-membership": [ "DuoCut/compile-sources" ] },
             { "path": "ShareCard.swift", "target-membership": [ "DuoCut/compile-sources" ] },
           ],
         }, {
@@ -90,6 +92,7 @@
       "children": [
         { "path": "PolygonTests.swift", "target-membership": [ "DuoCutTests/compile-sources" ] },
         { "path": "PolygonCutTests.swift", "target-membership": [ "DuoCutTests/compile-sources" ] },
+        { "path": "ScoringTests.swift", "target-membership": [ "DuoCutTests/compile-sources" ] },
       ],
     }, {
       "kind": "group",

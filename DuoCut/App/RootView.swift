@@ -26,8 +26,15 @@ struct RootView: View {
     private var content: some View {
         switch screen {
         case .daily:
-            PuzzleView(game: PuzzleGame(pack: dailyPack), stats: stats, daily: daily)
-                .overlay(alignment: .topLeading) { backButton }
+            // The daily counts once a day, so a day that's already played shows its result
+            // instead of a board whose cut would be thrown away.
+            if let record = daily.record() {
+                DailyDoneView(daily: daily, record: record)
+                    .overlay(alignment: .topLeading) { backButton }
+            } else {
+                PuzzleView(game: PuzzleGame(pack: dailyPack), stats: stats, daily: daily)
+                    .overlay(alignment: .topLeading) { backButton }
+            }
         case .puzzle:
             if let pack {
                 PuzzleView(game: PuzzleGame(pack: pack), stats: stats)
@@ -52,34 +59,80 @@ struct RootView: View {
         Pack(id: "daily", title: "Daily", subtitle: "One shape a day", levels: [DailyChallenge.level()])
     }
 
+    /// The menu keeps off the crease too: on a wide inner display the title takes one half and
+    /// the modes the other, instead of a row of tiles with the fold through the middle one.
     private var menu: some View {
-        VStack(spacing: 30) {
-            VStack(spacing: 10) {
-                Text("DuoCut")
-                    .font(.system(size: 60, weight: .black, design: .rounded))
-                Text("Line the shape up with the fold.\nSnap the hinge to cut it.")
-                    .font(.system(size: 17, weight: .medium, design: .rounded))
-                    .foregroundStyle(Palette.ink.opacity(0.5))
-                    .multilineTextAlignment(.center)
-            }
-            HStack(spacing: 14) {
-                tile("Daily", dailySubtitle, .daily)
-                tile("Puzzle", "Aim, then snap", .puzzle)
-                tile("Arcade", "Snap on time", .arcade)
-            }
-            Button {
-                screen = .achievements
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "rosette")
-                    Text("\(stats.unlocked.count) of \(Achievement.all.count) unlocked · \(stats.folds) folds")
+        GeometryReader { proxy in
+            let fold = FoldLine.from(proxy)
+            let isSplit = fold.isReserved && fold.axis == .vertical && proxy.size.width >= 760
+            Group {
+                if isSplit {
+                    HStack(spacing: max(32, fold.thickness + 32)) {
+                        title
+                            .frame(maxWidth: .infinity)
+                        VStack(spacing: 12) {
+                            tiles(isWide: true)
+                            unlockedButton
+                                .padding(.top, 6)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .padding(.horizontal, 40)
+                } else {
+                    VStack(spacing: 30) {
+                        title
+                        tiles(isWide: false)
+                        unlockedButton
+                    }
+                    .padding(.horizontal, 24)
                 }
-                .font(.system(size: 15, weight: .medium, design: .rounded))
-                .foregroundStyle(Palette.ink.opacity(0.5))
             }
-            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .foregroundStyle(Palette.ink)
         }
-        .foregroundStyle(Palette.ink)
+    }
+
+    private var title: some View {
+        VStack(spacing: 10) {
+            Text("DuoCut")
+                .font(.system(size: 60, weight: .black, design: .rounded))
+            Text("Line the shape up with the fold.\nSnap the hinge to cut it.")
+                .font(.system(size: 17, weight: .medium, design: .rounded))
+                .foregroundStyle(Palette.ink.opacity(0.5))
+                .multilineTextAlignment(.center)
+        }
+    }
+
+    @ViewBuilder
+    private func tiles(isWide: Bool) -> some View {
+        let items = [
+            ("Daily", dailySubtitle, Screen.daily),
+            ("Puzzle", "Aim, then snap", Screen.puzzle),
+            ("Arcade", "Snap on time", Screen.arcade)
+        ]
+        if isWide {
+            VStack(spacing: 12) {
+                ForEach(items, id: \.2) { tile($0.0, $0.1, $0.2, isWide: true) }
+            }
+        } else {
+            HStack(spacing: 14) {
+                ForEach(items, id: \.2) { tile($0.0, $0.1, $0.2, isWide: false) }
+            }
+        }
+    }
+
+    private var unlockedButton: some View {
+        Button {
+            screen = .achievements
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "rosette")
+                Text("\(stats.unlocked.count) of \(Achievement.all.count) unlocked · \(stats.folds) folds")
+            }
+            .font(.system(size: 15, weight: .medium, design: .rounded))
+            .foregroundStyle(Palette.ink.opacity(0.5))
+        }
+        .buttonStyle(.plain)
     }
 
     private var dailySubtitle: String {
@@ -89,7 +142,7 @@ struct RootView: View {
         return daily.streak > 0 ? "\(daily.streak) day streak" : "One cut a day"
     }
 
-    private func tile(_ title: String, _ subtitle: String, _ value: Screen) -> some View {
+    private func tile(_ title: String, _ subtitle: String, _ value: Screen, isWide: Bool) -> some View {
         Button {
             screen = value
         } label: {
@@ -101,7 +154,9 @@ struct RootView: View {
                     .foregroundStyle(Palette.ink.opacity(0.45))
                     .multilineTextAlignment(.center)
             }
-            .frame(width: 160, height: 110)
+            .padding(.horizontal, 16)
+            .frame(maxWidth: isWide ? 280 : 170)
+            .frame(minWidth: isWide ? 220 : 130, minHeight: isWide ? 86 : 110)
             .background(Palette.ink.opacity(0.06), in: .rect(cornerRadius: 22))
         }
         .buttonStyle(.plain)

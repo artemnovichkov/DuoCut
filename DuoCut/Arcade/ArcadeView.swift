@@ -31,17 +31,21 @@ struct ArcadeView: View {
                     game.step(to: date)
                 }
             }
+            .background { FoldBand(fold: fold) }
             .overlay {
                 BladeOverlay(fold: fold, tension: detector.tension)
             }
-            .overlay { hud }
+            .overlay { hud(in: proxy.size, fold: fold) }
             .contentShape(.rect)
             .onTapGesture {
-                if game.phase != .playing { game.start(in: proxy.size) }
+                restartIfWelcome(size: proxy.size, fold: fold)
             }
             .gesture(swipeToCut(fold: fold))
-            .onChange(of: proxy.size, initial: true) { _, size in
-                game.layout(for: size)
+            .onChange(of: fold, initial: true) { _, newFold in
+                game.layout(for: proxy.size, fold: newFold)
+            }
+            .onChange(of: proxy.size) { _, size in
+                game.layout(for: size, fold: fold)
             }
             .onChange(of: game.phase) { _, phase in
                 guard phase == .over else { return }
@@ -57,7 +61,7 @@ struct ArcadeView: View {
                     if game.phase == .playing {
                         game.cut(with: fold.line, speed: snap.speed)
                     } else {
-                        game.start(in: proxy.size)
+                        restartIfWelcome(size: proxy.size, fold: fold)
                     }
                 }
             }
@@ -67,9 +71,27 @@ struct ArcadeView: View {
         .sensoryFeedback(.impact(weight: .heavy), trigger: game.hits)
         .sensoryFeedback(.error, trigger: game.phase) { _, phase in phase == .over }
         .achievementToast(stats)
+        .onDisappear {
+            // Walking out mid-run still banks the score.
+            guard game.phase == .playing else { return }
+            game.finish()
+            stats.recordArcade(score: game.score, combo: game.bestCombo)
+        }
     }
 
-    private var hud: some View {
+    /// A run starts from the welcome screen, or from a game over once it has settled.
+    private func restartIfWelcome(size: CGSize, fold: FoldLine) {
+        switch game.phase {
+        case .ready:
+            game.start(in: size, fold: fold)
+        case .over where game.canRestart:
+            game.start(in: size, fold: fold)
+        default:
+            break
+        }
+    }
+
+    private func hud(in size: CGSize, fold: FoldLine) -> some View {
         VStack {
             HStack(alignment: .top) {
                 Text(game.score, format: .number)
@@ -92,24 +114,32 @@ struct ArcadeView: View {
 
             Spacer()
 
-            switch game.phase {
-            case .ready:
-                banner(title: "Arcade", subtitle: hint)
-            case .playing:
-                if game.lastCombo > 1 {
-                    Text("×\(game.lastCombo)")
-                        .font(.system(size: 34, weight: .black, design: .rounded))
-                        .foregroundStyle(Palette.blade)
-                        .transition(.scale)
-                }
-            case .over:
-                banner(title: "Game over", subtitle: "Best \(game.best) · tap to play again")
-            }
+            middle
+                // The banner and the combo count both sit in one half, clear of the crease.
+                .offset(fold.axis == .vertical ? fold.offsetIntoRoomierHalf(in: size, minimum: 360) : .zero)
+
             Spacer()
         }
         .allowsHitTesting(false)
         .animation(.snappy, value: game.phase)
         .animation(.snappy, value: game.lastCombo)
+    }
+
+    @ViewBuilder
+    private var middle: some View {
+        switch game.phase {
+        case .ready:
+            banner(title: "Arcade", subtitle: hint)
+        case .playing:
+            if game.lastCombo > 1 {
+                Text("×\(game.lastCombo)")
+                    .font(.system(size: 34, weight: .black, design: .rounded))
+                    .foregroundStyle(Palette.blade)
+                    .transition(.scale)
+            }
+        case .over:
+            banner(title: "Game over", subtitle: overSubtitle)
+        }
     }
 
     private func banner(title: String, subtitle: String) -> some View {
@@ -125,7 +155,15 @@ struct ArcadeView: View {
     }
 
     private var hint: String {
-        hasHinge ? "Snap the hinge as a shape crosses the fold" : "Swipe across the line to cut"
+        let start = hasHinge ? "Snap the hinge as a shape crosses the fold" : "Swipe across the line to cut"
+        let best = game.best > 0 ? "\nBest \(game.best) · " : "\n"
+        return start + best + (hasHinge ? "snap to start" : "tap to start")
+    }
+
+    private var overSubtitle: String {
+        let score = "\(game.score) · best \(game.best)"
+        guard game.canRestart else { return score }
+        return score + (hasHinge ? "\nSnap or tap to play again" : "\nTap to play again")
     }
 
     /// The no-hinge fallback: a swipe across the blade fires the same cut.

@@ -25,7 +25,7 @@ enum Levels {
                 title: "Square",
                 goal: .equalHalves,
                 shapes: [.rectangle(CGRect(x: -0.8, y: -0.8, width: 1.6, height: 1.6))],
-                startOffset: CGVector(dx: 40, dy: 0)
+                startOffset: CGVector(dx: 0.80, dy: 0.00)
             ),
             Level(
                 id: "basics-hexagon",
@@ -33,7 +33,7 @@ enum Levels {
                 goal: .equalHalves,
                 shapes: [.regular(sides: 6, radius: 0.9)],
                 startRotation: 0.35,
-                startOffset: CGVector(dx: -50, dy: 20)
+                startOffset: CGVector(dx: -1.00, dy: 0.40)
             ),
             Level(
                 id: "basics-triangle",
@@ -41,7 +41,7 @@ enum Levels {
                 goal: .equalHalves,
                 shapes: [.regular(sides: 3, radius: 1)],
                 startRotation: 0.7,
-                startOffset: CGVector(dx: 30, dy: -10)
+                startOffset: CGVector(dx: 0.60, dy: -0.20)
             ),
             Level(
                 id: "basics-slab",
@@ -49,7 +49,7 @@ enum Levels {
                 goal: .equalHalves,
                 shapes: [.rectangle(CGRect(x: -1.1, y: -0.45, width: 2.2, height: 0.9))],
                 startRotation: -0.25,
-                startOffset: CGVector(dx: -30, dy: 30)
+                startOffset: CGVector(dx: -0.60, dy: 0.60)
             ),
             Level(
                 id: "basics-ell",
@@ -60,7 +60,7 @@ enum Levels {
                     CGPoint(x: 0.9, y: -0.2), CGPoint(x: 0.9, y: 0.9), CGPoint(x: -0.9, y: 0.9)
                 ])],
                 startRotation: 0.2,
-                startOffset: CGVector(dx: 20, dy: 0)
+                startOffset: CGVector(dx: 0.40, dy: 0.00)
             ),
             Level(
                 id: "basics-star",
@@ -68,7 +68,7 @@ enum Levels {
                 goal: .equalHalves,
                 shapes: [.star(points: 5, outerRadius: 1, innerRadius: 0.42)],
                 startRotation: 0.5,
-                startOffset: CGVector(dx: -20, dy: -20)
+                startOffset: CGVector(dx: -0.40, dy: -0.40)
             ),
             Level(
                 id: "basics-cee",
@@ -80,14 +80,14 @@ enum Levels {
                     CGPoint(x: 0.9, y: 0.9), CGPoint(x: -0.9, y: 0.9)
                 ])],
                 startRotation: -0.4,
-                startOffset: CGVector(dx: 40, dy: 10)
+                startOffset: CGVector(dx: 0.80, dy: 0.20)
             ),
             Level(
                 id: "basics-third",
                 title: "A Third",
                 goal: .ratio(1.0 / 3),
                 shapes: [.regular(sides: 12, radius: 0.95)],
-                startOffset: CGVector(dx: -40, dy: 0)
+                startOffset: CGVector(dx: -0.80, dy: 0.00)
             )
         ]
     )
@@ -103,7 +103,7 @@ enum Levels {
                 title: "Plum",
                 goal: .equalHalves,
                 shapes: [.regular(sides: 24, radius: 0.85)],
-                startOffset: CGVector(dx: 60, dy: -10)
+                startOffset: CGVector(dx: 1.20, dy: -0.20)
             ),
             Level(
                 id: "fruit-pear",
@@ -111,7 +111,7 @@ enum Levels {
                 goal: .equalHalves,
                 shapes: [pear],
                 startRotation: 0.6,
-                startOffset: CGVector(dx: -40, dy: 20)
+                startOffset: CGVector(dx: -0.80, dy: 0.40)
             ),
             Level(
                 id: "fruit-banana",
@@ -119,14 +119,14 @@ enum Levels {
                 goal: .equalHalves,
                 shapes: [crescent],
                 startRotation: -0.5,
-                startOffset: CGVector(dx: 30, dy: 0)
+                startOffset: CGVector(dx: 0.60, dy: 0.00)
             ),
             Level(
                 id: "fruit-slice",
                 title: "Melon Slice",
                 goal: .ratio(0.25),
                 shapes: [.regular(sides: 20, radius: 0.9)],
-                startOffset: CGVector(dx: -60, dy: 10)
+                startOffset: CGVector(dx: -1.20, dy: 0.20)
             ),
             Level(
                 id: "fruit-bunch",
@@ -145,7 +145,7 @@ enum Levels {
                 goal: .ratio(1.0 / 3),
                 shapes: [apple],
                 startRotation: 0.25,
-                startOffset: CGVector(dx: 40, dy: -20)
+                startOffset: CGVector(dx: 0.80, dy: -0.40)
             )
         ],
         starsToUnlock: 8
@@ -184,7 +184,7 @@ enum Levels {
                     Token(position: CGPoint(x: 0.8, y: -0.1), color: .star)
                 ],
                 startRotation: -0.3,
-                startOffset: CGVector(dx: 30, dy: 0)
+                startOffset: CGVector(dx: 0.60, dy: 0.00)
             ),
             Level(
                 id: "stars-sort",
@@ -213,7 +213,7 @@ enum Levels {
                     Token(position: CGPoint(x: 0.45, y: -0.05), color: .blue)
                 ],
                 startRotation: 1.2,
-                startOffset: CGVector(dx: -30, dy: 20)
+                startOffset: CGVector(dx: -0.60, dy: 0.40)
             ),
             Level(
                 id: "stars-horseshoe",
@@ -236,54 +236,61 @@ enum Levels {
         starsToUnlock: 22
     )
 
-    /// More than one cut, and a target that isn't half.
+    /// More than one cut, and a goal that only the finished pieces can answer.
+    ///
+    /// Two straight cuts through everything on the board make three pieces when they run
+    /// parallel and four when they cross, so these levels are about planning both cuts, not
+    /// about hitting one number twice.
     static let mosaic = Pack(
         id: "mosaic",
         title: "Mosaic",
-        subtitle: "Two cuts, three pieces",
+        subtitle: "Cut it into pieces",
         levels: [
             Level(
                 id: "mosaic-thirds",
                 title: "Thirds",
-                goal: .ratio(1.0 / 3),
+                goal: .shares([1.0 / 3, 1.0 / 3, 1.0 / 3]),
                 cuts: 2,
                 shapes: [.rectangle(CGRect(x: -1, y: -0.5, width: 2, height: 1))],
-                startOffset: CGVector(dx: 40, dy: 0)
+                startOffset: CGVector(dx: 0.80, dy: 0)
             ),
             Level(
                 id: "mosaic-quarters",
                 title: "Quarters",
-                goal: .equalHalves,
+                goal: .shares([0.25, 0.25, 0.25, 0.25]),
                 cuts: 2,
                 shapes: [.regular(sides: 4, radius: 1)],
-                startRotation: 0.5
+                startRotation: 0.5,
+                startOffset: CGVector(dx: -0.70, dy: 0.20)
             ),
             Level(
-                id: "mosaic-fifth",
-                title: "A Fifth",
-                goal: .ratio(0.2),
+                id: "mosaic-uneven",
+                title: "Uneven",
+                goal: .shares([0.5, 0.3, 0.2]),
                 cuts: 2,
                 shapes: [.regular(sides: 16, radius: 0.9)],
-                startOffset: CGVector(dx: -50, dy: 20)
+                startOffset: CGVector(dx: -0.90, dy: 0.40)
             ),
             Level(
                 id: "mosaic-ell",
                 title: "Split Elbow",
-                goal: .equalHalves,
+                goal: .shares([1.0 / 3, 1.0 / 3, 1.0 / 3]),
                 cuts: 2,
                 shapes: [Polygon([
                     CGPoint(x: -0.9, y: -0.9), CGPoint(x: 0.3, y: -0.9), CGPoint(x: 0.3, y: -0.2),
                     CGPoint(x: 0.9, y: -0.2), CGPoint(x: 0.9, y: 0.9), CGPoint(x: -0.9, y: 0.9)
                 ])],
-                startRotation: 0.8
+                startRotation: 0.8,
+                startOffset: CGVector(dx: 0.70, dy: -0.20)
             ),
             Level(
-                id: "mosaic-star",
-                title: "Broken Star",
-                goal: .ratio(0.25),
-                cuts: 3,
-                shapes: [.star(points: 6, outerRadius: 1, innerRadius: 0.45)],
-                startRotation: 0.2
+                id: "mosaic-hexagon",
+                title: "Three Ways",
+                goal: .shares([0.5, 1.0 / 3, 1.0 / 6]),
+                cuts: 2,
+                shapes: [.regular(sides: 6, radius: 0.95)],
+                startRotation: 0.2,
+                startOffset: CGVector(dx: -0.80, dy: 0)
             )
         ],
         starsToUnlock: 37

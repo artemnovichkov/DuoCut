@@ -5,20 +5,11 @@ struct AchievementsView: View {
     let stats: PlayerStats
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 12) {
-                ForEach(Achievement.all) { achievement in
-                    row(achievement)
-                }
-                FoldCounter(folds: stats.folds)
-                    .padding(.top, 8)
-            }
-            .padding(24)
-            .frame(maxWidth: 560)
-            .frame(maxWidth: .infinity)
+        FoldColumns(title: "Achievements", items: Achievement.all) { achievement in
+            row(achievement)
+        } detail: {
+            FoldCounter(folds: stats.folds)
         }
-        .background(Palette.paper)
-        .scrollContentBackground(.hidden)
     }
 
     private func row(_ achievement: Achievement) -> some View {
@@ -28,17 +19,17 @@ struct AchievementsView: View {
                 .font(.system(size: 20))
                 .frame(width: 44, height: 44)
                 .background(isUnlocked ? Palette.blade.opacity(0.14) : Palette.ink.opacity(0.05), in: .circle)
-                .foregroundStyle(isUnlocked ? Palette.blade : Palette.ink.opacity(0.3))
+                .foregroundStyle(isUnlocked ? Palette.blade : Palette.ink.opacity(0.35))
             VStack(alignment: .leading, spacing: 2) {
                 Text(achievement.title)
                     .font(.system(size: 17, weight: .semibold, design: .rounded))
                 Text(achievement.detail)
                     .font(.system(size: 14, design: .rounded))
-                    .foregroundStyle(Palette.ink.opacity(0.5))
+                    .foregroundStyle(Palette.ink.opacity(0.55))
             }
             Spacer()
         }
-        .foregroundStyle(isUnlocked ? Palette.ink : Palette.ink.opacity(0.45))
+        .foregroundStyle(isUnlocked ? Palette.ink : Palette.ink.opacity(0.55))
         .padding(14)
         .background(Palette.ink.opacity(0.04), in: .rect(cornerRadius: 18))
     }
@@ -49,15 +40,14 @@ struct FoldCounter: View {
     let folds: Int
 
     var body: some View {
-        VStack(spacing: 4) {
+        HStack(spacing: 6) {
             Text(folds, format: .number)
-                .font(.system(size: 34, weight: .black, design: .rounded))
+                .font(.system(size: 17, weight: .bold, design: .rounded))
                 .monospacedDigit()
             Text(folds == 1 ? "fold so far" : "folds so far")
-                .font(.system(size: 14, weight: .medium, design: .rounded))
-                .foregroundStyle(Palette.ink.opacity(0.45))
+                .font(.system(size: 15, weight: .medium, design: .rounded))
         }
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.ink.opacity(0.5))
     }
 }
 
@@ -87,18 +77,25 @@ struct AchievementToast: View {
 }
 
 extension View {
-    /// Shows each new achievement for a moment, then clears it.
+    /// Shows each new achievement for a moment, then clears it. The banner keeps clear of a
+    /// vertical fold, like everything else the player has to read.
     func achievementToast(_ stats: PlayerStats) -> some View {
-        overlay(alignment: .bottom) {
-            if let achievement = stats.latest {
-                AchievementToast(achievement: achievement)
-                    .padding(.bottom, 40)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .task(id: achievement.id) {
-                        try? await Task.sleep(for: .seconds(2.5))
-                        withAnimation(.snappy) { stats.latest = nil }
-                    }
+        overlay {
+            GeometryReader { proxy in
+                let fold = FoldLine.from(proxy)
+                if let achievement = stats.latest {
+                    AchievementToast(achievement: achievement)
+                        .offset(fold.axis == .vertical ? fold.offsetIntoRoomierHalf(in: proxy.size, minimum: 340) : .zero)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                        .padding(.bottom, 40)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .task(id: achievement.id) {
+                            try? await Task.sleep(for: .seconds(2.5))
+                            withAnimation(.snappy) { stats.latest = nil }
+                        }
+                }
             }
+            .allowsHitTesting(false)
         }
         .animation(.snappy, value: stats.latest)
     }
