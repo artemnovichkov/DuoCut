@@ -10,7 +10,8 @@ struct RootView: View {
     /// `-mode daily`, `puzzle`, `arcade`, or `achievements` opens a screen straight away,
     /// which is how the simulator runs one screen without tapping through the menu.
     @State private var screen = Screen(rawValue: UserDefaults.standard.string(forKey: "mode") ?? "")
-    @State private var pack: Pack?
+    /// `-pack basics` opens a pack without going through the list.
+    @State private var pack = Levels.packs.first { $0.id == UserDefaults.standard.string(forKey: "pack") }
     @State private var stats = PlayerStats()
     @State private var daily = DailyStore()
 
